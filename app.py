@@ -1,30 +1,104 @@
-from translate import Translator
-from num2words import *
-from word2number import w2n
-def calc():
-    try:
-        translator = Translator(from_lang='ru', to_lang='en')
-        number_a = w2n.word_to_num(translator.translate(input("Введите число a: ")))
-        print(number_a)
-        number_b = w2n.word_to_num(translator.translate(input("Введите число b: ")))
-        print(number_b)
-        action = input("Введите действие(-, +, *, /): ")
-        if action == "+":
-            result = number_a + number_b
-        elif action == "-":
-            result = number_a - number_b
-        elif action == "*":
-            result = number_a * number_b
-        elif action == "/":
-            if action == 0:
-                print("Ошибка: Деление на ноль!")
-                return
-            result = number_a / number_b
-        else:
-            print("Ошибка: Неверная операция!")
-            return
+#Словарь, который сопоставляет русские слова с числами (от 0 до 90)
+words_to_numbs = {
+    "ноль": 0, "один": 1, "два": 2, "три": 3, "четыре": 4, "пять": 5, "шесть": 6, "семь": 7, "восемь": 8, "девять": 9,
+    "десять": 10, "одиннадцать": 11, "двенадцать": 12, "тринадцать": 13, "четырнадцать": 14, "пятнадцать": 15,
+    "шестнадцать": 16, "семнадцать": 17, "восемнадцать": 18, "девятнадцать": 19, "двадцать": 20, "тридцать": 30,
+    "сорок": 40, "пятьдесят": 50, "шестьдесят": 60, "семьдесят": 70, "восемьдесят": 80, "девяносто": 90
+}
 
-        print("Результат: ", result)
-    except ValueError:
-        print("Ошибка: Введите корректные числа!")
+#Обратный словарь, который сопоставляет числа (значения) с их текстовыми представлениями
+numbs_to_words = {}
+for key, value in words_to_numbs.items():
+    numbs_to_words[value] = key
+
+#Словарь, который сопоставляет операции (как слова) с символами операций
+operations = {"плюс": "+", "минус": "-", "умножить": "*"}
+
+
+#Функция для вычисления результата выражения
+def calculate(term):
+    return perform_operation(term[0], term[1], term[2])
+
+
+#Функция для выполнения математических операций между двумя числами
+def perform_operation(number_a, operation, number_b):
+    if operation == "+": #Если операция - сложение, возвращаем сумму
+        return number_a + number_b
+    elif operation == "-": #Если операция - вычитание, возвращаем разность
+        return number_a - number_b
+    elif operation == "*": #Если операция - умножение, возвращаем произведение
+        return number_a * number_b
+    return 0  #Если операция не определена, возвращаем 0
+
+
+#Функция для перевода строки (выражения) из текста в список чисел и операций
+def translate_words(string):
+    words = string.split() #Разделяем строку на отдельные слова
+    expression = [] #Список, который будет содержать числа и операции
+    number = 0 #Переменная для хранения текущего числа
+
+    for word in words: #Проходим по всем словам в строке
+        if word in words_to_numbs: #Если слово — это число из словаря
+            number = words_to_numbs[word] if number is None else number + words_to_numbs[word] #Если это первое число, присваиваем его переменной number. Если число уже было, складываем его с текущим значением.
+        elif word in operations: #Если слово — это операция
+            if number is not None and 0 <= number <= 100: #Если число было и оно в пределах от 0 до 100, добавляем его в выражение
+                expression.extend([number, operations[word]])  #Добавляем число и операцию
+                number = 0  # Обнуляем переменную number для следующего числа
+            else:
+                raise Exception("Числа должны быть в диапазоне от 0 до 100!!!") #Если число выходит за пределы диапазона, выбрасываем исключение
+    #Добавляем последнее число в выражение (если оно есть)
+    if number is not None:
+        expression.append(number)
+    return expression
+
+
+#Функция для перевода числа в строковое представление
+def translate_number(num):
+    #Если число равно 0, сразу возвращаем строку "ноль"
+    if num == 0:
+        return "ноль"
+
+    result = []  #Список для хранения частей числа в текстовом виде
+
+    #Если число отрицательное, добавляем "минус" в начало
+    if num < 0:
+        result.append("минус")
+        num = -num  # Преобразуем число в положительное
+
+    #Если число от 11 до 19, записываем его как одно слово (например, "пятнадцать")
+    if 11 <= num <= 19:
+        result.append(numbs_to_words[num])
+    else:
+        #Для чисел больше 20 обрабатываем сотни, десятки и единицы отдельно
+        hundreds = num // 100 * 100  # Получаем количество сотен
+        tens = (num % 100) // 10 * 10  # Получаем десятки
+        ones = num % 10  # Получаем единицы
+
+        if hundreds: #Если есть сотни, добавляем их в результат
+            result.append(numbs_to_words[hundreds])
+        if tens: #Если есть десятки, добавляем их в результат
+            result.append(numbs_to_words[tens])
+        if ones: #Если есть единицы, добавляем их в результат
+            result.append(numbs_to_words[ones])
+
+    #Возвращаем строку, составленную из всех частей
+    return " ".join(result)
+
+
+#Основная функция для выполнения калькулятора
+def calc():
+    #Печатаем приглашение для ввода
+    print("Введите необходимые значения(помните, что числа должны быть меньше 100): ")
+    while True:
+        string = input("--> ")  #Получаем строку ввода от пользователя
+        if string == "выход":  #Если пользователь вводит "выход", выходим из цикла
+            break
+
+        try:
+            print(translate_number(calculate(translate_words(string)))) #Преобразуем строку в выражение, вычисляем результат и выводим его
+        except Exception as e: #Если произошло исключение (например, ошибка ввода), выводим сообщение об ошибке
+            print("Неправильно записано выражение! Попробуйте еще раз!", e)
+
+
+#Запускаем
 calc()
